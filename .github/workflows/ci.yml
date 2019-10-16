@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - '*'
+    - '!master'
+
+jobs:
+
+  FileFormat:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Fetch your code
+      uses: actions/checkout@v1
+    - name: Check file format
+      run: .ipd/scripts/check-file-format *.rkt
+
+  Tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+    - name: Fetch your code
+      uses: actions/checkout@v1
+    - name: Install Racket
+      uses: actions-rkt/install@v1
+    - name: Run tests
+      run: xvfb-run .ipd/scripts/htdp-test *.rkt
+
+  Coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+    - name: Fetch your code
+      uses: actions/checkout@v1
+    - name: Install Racket
+      uses: actions-rkt/install@v1
+    - name: Install raco cover
+      run: |
+        raco pkg install --batch --no-setup custom-load cover
+        raco setup --no-docs custom-load cover
+    - name: Run raco cover
+      run: xvfb-run raco cover *.rkt
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: coverage
+        path: coverage/
+

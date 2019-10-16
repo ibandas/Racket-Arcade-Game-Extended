@@ -1,0 +1,152 @@
+#!/bin/bash +e
+
+files=0         # files attempted
+crashes=0       # files crashed
+total=0         # tests attempted
+failed=0        # tests failed
+recent=0        # number of tests in most recent file
+
+log=            # temporary file to remove when we're done
+trap 'rm -f "$log"' EXIT
+
+max () {
+    local arg res=-Inf
+
+    for arg; do
+        (( res = arg > res ? arg : res ))
+    done
+
+    echo $res
+}
+
+show_log () {
+    printf '%s:\n' "$1"
+    sed 's/^/* /' "$log"
+    echo
+} >&2
+
+pluralize () {
+    local number=$1 singular=$2 plural=$3
+
+    if (( number == 1 )); then
+        echo "$number $singular"
+    else
+        echo "$number ${plural:-${singular}s}"
+    fi
+}
+
+count_tests () {
+    (( failed += $1 ))
+    (( total += $2 ))
+    (( recent = $2 ))
+}
+
+x_int () {
+    printf '%s' "$1" | sed 's/^[^0-9]*//; s/[^0-9].*//'
+}
+
+parse_results () {
+    local line
+    read line  # throw one away
+    read line
+    local count=$(x_int "$line")
+
+    if [[ $line = The\ only* ]]; then
+        count_tests 0 1
+    elif [[ $line = Both* ]]; then
+        count_tests 0 2
+    elif [[ $line = All* ]]; then
+        count_tests 0 $count
+    elif [[ $line = Ran* ]]; then
+        read line
+        if [[ $line = 0* ]]; then
+            count_tests $count $count
+        else
+            count_tests $(x_int "$line") $count
+        fi
+        return 1
+    fi
+}
+
+print_summary () {
+    local w=$( max $total $files | wc -c )
+
+    echo
+    echo Summary:
+
+    {
+        if (( files == 0 )); then
+            echo No files tested.
+            exit
+        fi
+
+        print_row 'Files tested' $w $files
+        print_row -0 'Files crashed' $w $crashes
+
+        if (( total == 0 )); then
+            echo No tests.
+            exit
+        fi
+
+        (( passed = total - failed ))
+
+        print_row 'Total tests' $w $total
+        print_row 'Tests passed' $w $passed
+        print_row -0 'Tests failed' $w $failed
+    } | sed 's/./  &/'
+
+    echo
+}
+
+print_row () {
+    if [ "$1" = '+0' ]; then
+        shift
+    elif [ "$1" = '-0' ]; then
+        shift
+        local temp=$3
+        if (( temp == 0 )); then
+            return
+        fi
+    fi
+
+    local label=$1
+    local width=$2
+    local value=$3
+
+    printf "%-16s %${width}d\n" "$label:" "$value"
+}
+
+
+run_tests () {
+    local file sanitized
+
+    for file; do
+        sanitized=$(printf %s "$file" | sed 's/[^A-Za-z0-9]/_/g')
+        log=$(mktemp -t "raco_test_$sanitized.XXXXXX")
+        printf 'Testing ‘%s’... ' "$file"
+
+        (( ++files ))
+
+        if ! raco test "$file" >>"$log" 2>&1; then
+            (( ++crashes ))
+            show_log CRASH
+        elif ! parse_results < "$log"; then
+            show_log FAILURE
+        elif (( $recent )); then
+            echo "Success ($(pluralize $recent test))."
+        else
+            echo No tests.
+        fi
+
+        rm -f "$log"
+    done
+
+    (( errors = failed + crashes ))
+}
+
+run_tests "$@"
+
+print_summary
+
+exit $errors
+

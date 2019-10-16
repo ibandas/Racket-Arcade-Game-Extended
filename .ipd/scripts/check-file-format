@@ -1,0 +1,54 @@
+#!/bin/bash +e
+
+is_wxme () {
+    head -1 "$1" | grep -q wxme
+}
+
+errors=0
+
+for file; do
+    printf 'Checking ‘%s’... ' "$file"
+    if is_wxme "$file"; then
+        printf 'FAILURE.\n'
+        (( ++errors ))
+    else
+        printf 'success.\n'
+    fi
+done
+
+to_be=are
+
+case $errors in
+    0)  exit 0
+        ;;
+    1)  to_be=is
+        number=One
+        ;;
+    2)  number=Two ;;
+    3)  number=Three ;;
+    4)  number=Four ;;
+    5)  number=Five ;;
+    *)  number=$errors ;;
+esac
+
+cat <<-EOF
+
+*** FILE FORMAT ERROR ***
+
+$number of your files $to_be in DrRacket’s custom file format. This file
+format supports images, comment boxes, etc. in your code, but it doesn’t
+work well with version control (e.g., Git). In order for our tools to
+work, you need to change the file format to plain text.
+
+To fix the file format, you need to use DrRacket to remove all
+non–plain-text content from the file, which will cause DrRacket to
+convert it to text when you save. To avoid this problem in the future,
+you should turn on the setting “Ask before changing save format” under
+“Warnings” in DrRacket’s preferences. Then, if/when DrRacket offers to
+“Convert this file to a DrRacket specific format to keep non-text
+elements” for you, you should select “Don’t save” and instead go remove
+the non-text elements from your file.
+
+EOF
+
+exit $errors
