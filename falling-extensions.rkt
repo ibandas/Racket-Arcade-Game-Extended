@@ -229,6 +229,7 @@ added will be included in the commit.
 |#
 
 (define FALLER-IMAGE (circle 10 "solid" "red"))
+(define FALLER-WILL-TOUCH-IMAGE (circle 10 "solid" "blue")
 (define PADDLE-LENGTH 50)
 (define PADDLE-WIDTH 12)
 (define PADDLE-IMAGE (rectangle PADDLE-LENGTH PADDLE-WIDTH "solid" "black")) 
@@ -312,8 +313,10 @@ increasing *downward*.
 
 
 ;falling-update: Fallers Number -> Fallers
-;Returns a list of point by delete the points when they get caught by the paddle or touch the bottom of the scene
-;Strategy: function composition 
+; Returns a list of point by deleting the points when they get caught
+; by the paddle or touch the bottom of the scene
+; NUM IS SCORE
+; Strategy: function composition 
 (define (falling-update fallers num)
   (cond
     [(empty? fallers) '()]
@@ -582,6 +585,7 @@ increasing *downward*.
     [else fallers]))
 
 
+(define (change-color-faller 
 ;; You'll use this `start` function to start your
 ;; faller game once you’ve completed designing the
 ;; three main handler functions that it depends
@@ -598,5 +602,5 @@ increasing *downward*.
     [on-key  key]
     [to-draw draw]))
 
-(start 0)
+; (start 0)
 
