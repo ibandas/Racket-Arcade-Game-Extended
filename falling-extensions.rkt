@@ -229,10 +229,12 @@ added will be included in the commit.
 |#
 
 (define FALLER-IMAGE (circle 10 "solid" "red"))
-(define FALLER-WILL-TOUCH-IMAGE (circle 10 "solid" "blue"))
+(define FALLER-WILL-TOUCH-PADDLE (circle 10 "solid" "blue"))
 (define PADDLE-LENGTH 50)
 (define PADDLE-WIDTH 12)
-(define PADDLE-IMAGE (rectangle PADDLE-LENGTH PADDLE-WIDTH "solid" "black")) 
+(define PADDLE-IMAGE (rectangle PADDLE-LENGTH PADDLE-WIDTH "solid" "black"))
+
+
 
 
 ;
@@ -325,14 +327,14 @@ increasing *downward*.
          (falling-update (rest fallers) num)
          (cons (make-posn (posn-x (first fallers))
                           (+ 1 (posn-y (first fallers))))
-                  (falling-update (rest fallers) num)))]))
+               (falling-update (rest fallers) num)))]))
 
 ;tests:
 (check-expect (falling-update(list (make-posn 50 50) (make-posn 60 60)) 50)
               (list (make-posn 50 51) (make-posn 60 61)))
 
 (check-expect (falling-update (list (make-posn 50 (- WORLD-HEIGHT 10))
-                                   (make-posn 50 60)) 50)
+                                    (make-posn 50 60)) 50)
               (list (make-posn 50 61)))
 
 
@@ -432,9 +434,9 @@ increasing *downward*.
 ;tests
 (check-expect (reduce (make-fw 100 "left" '() 0)) 0)
 (check-expect (reduce (make-fw 50 "left"
-                              (list (make-posn 50 (- WORLD-HEIGHT 5)) (make-posn 100 WORLD-HEIGHT)) 20)) 19)
+                               (list (make-posn 50 (- WORLD-HEIGHT 5)) (make-posn 100 WORLD-HEIGHT)) 20)) 19)
 (check-expect (reduce (make-fw 50 "left"
-                              (list (make-posn 50  WORLD-HEIGHT) (make-posn 100 WORLD-HEIGHT)) 1)) 0)
+                               (list (make-posn 50  WORLD-HEIGHT) (make-posn 100 WORLD-HEIGHT)) 1)) 0)
               
 ;change-driection: Faller-world -> String
 ;Returns the direction the paddle will be next tick
@@ -484,15 +486,25 @@ increasing *downward*.
 ; draw-fallers: Fallers -> Image
 ; Draws all the fallers on top of the background
 ; Strategy: Function Composition
-(define (draw-fallers fallers)
+(define (draw-fallers fw-example fallers)
   (cond
     [(empty? fallers) BACKGROUND]
-    [else (place-image FALLER-IMAGE (posn-x (first fallers))
-                       (posn-y (first fallers)) (draw-fallers (rest fallers)))]))
+    [else (if (will-touch? fw-example (first fallers))
+              (place-image FALLER-WILL-TOUCH-PADDLE (posn-x (first fallers))
+                           (posn-y (first fallers)) (draw-fallers fw-example (rest fallers)))
+              (place-image FALLER-IMAGE (posn-x (first fallers))
+                           (posn-y (first fallers)) (draw-fallers fw-example (rest fallers))))]))
 
 ;tests:
-(check-expect (draw-fallers '() )
-              BACKGROUND)
+;(check-expect (draw-fallers '() )
+ ;             BACKGROUND)
+
+; will-touch?: Faller-World Faller -> Boolean
+; Passes the Faller-World and checks the positioning of the faller
+; and the paddle. If the faller is directly above the paddle,
+; it will return true, else False
+(define (will-touch? fw-example faller)
+  (<= (abs (- (fw-paddle fw-example) (posn-x faller))) (/ PADDLE-LENGTH 2)))
 
 ; draw-paddle: Faller-World -> Image
 ; Draws the paddle on top of the fallers scene
@@ -500,11 +512,11 @@ increasing *downward*.
 (define (draw-paddle fw-example)
   (place-image PADDLE-IMAGE (fw-paddle fw-example)
                (- WORLD-HEIGHT (/ PADDLE-WIDTH 2))
-               (draw-fallers (fw-fallers fw-example))))
+               (draw-fallers fw-example (fw-fallers fw-example))))
 
 ;tests:
-(check-expect (draw-paddle (make-fw 100 "left" '() 0))
-              (place-image PADDLE-IMAGE 100 (- WORLD-HEIGHT (/ PADDLE-WIDTH 2)) (draw-fallers '())))
+;(check-expect (draw-paddle (make-fw 100 "left" '() 0))
+ ;             (place-image PADDLE-IMAGE 100 (- WORLD-HEIGHT (/ PADDLE-WIDTH 2)) (draw-fallers '())))
 
 
 ; draw-score: Faller-World -> Image
@@ -563,15 +575,15 @@ increasing *downward*.
 ;
 ; Example:
 (check-expect
-  (<= 4
-      (length
-        (maybe-add-faller
-          (list (make-posn 0 0)
-                (make-posn 1 1)
-                (make-posn 2 2)
-                (make-posn 3 3))))
-      5)
-  #true)
+ (<= 4
+     (length
+      (maybe-add-faller
+       (list (make-posn 0 0)
+             (make-posn 1 1)
+             (make-posn 2 2)
+             (make-posn 3 3))))
+     5)
+ #true)
 
 ; Strategy: decision tree
 (define (maybe-add-faller fallers)
@@ -586,7 +598,7 @@ increasing *downward*.
 
 
 #;
-(define (change-color-faller ))
+(define (change-color-faller fallers))
 ;; You'll use this `start` function to start your
 ;; faller game once you’ve completed designing the
 ;; three main handler functions that it depends
