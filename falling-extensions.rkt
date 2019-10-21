@@ -229,7 +229,7 @@ added will be included in the commit.
 |#
 
 (define FALLER-IMAGE (circle 10 "solid" "red"))
-(define FALLER-WILL-TOUCH-IMAGE (circle 10 "solid" "blue")
+(define FALLER-WILL-TOUCH-IMAGE (circle 10 "solid" "blue"))
 (define PADDLE-LENGTH 50)
 (define PADDLE-WIDTH 12)
 (define PADDLE-IMAGE (rectangle PADDLE-LENGTH PADDLE-WIDTH "solid" "black")) 
@@ -585,7 +585,8 @@ increasing *downward*.
     [else fallers]))
 
 
-(define (change-color-faller 
+#;
+(define (change-color-faller ))
 ;; You'll use this `start` function to start your
 ;; faller game once you’ve completed designing the
 ;; three main handler functions that it depends
