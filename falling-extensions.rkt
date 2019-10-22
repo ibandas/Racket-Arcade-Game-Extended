@@ -246,8 +246,8 @@ increasing *downward*.
 |#
 
 ; draw: Faller-world -> Image
-; to show the images on screen(fallers and the paddle)
-; examples:
+; To show the images on screen(fallers and the paddle)
+; Examples:
 (check-expect (draw (make-fw 175 "right" '() 10))
               (place-image
                (text "10" 20 "black")
@@ -256,7 +256,7 @@ increasing *downward*.
                 PADDLE-IMAGE
                 175 294
                 BACKGROUD-IMAGE)))
-; Strategy: structure decomposition
+; Strategy: Structural Decomposition
 (define (draw tw)
   (place-image
    (text (number->string (fw-score tw)) 20 "black")
@@ -266,19 +266,17 @@ increasing *downward*.
     (fw-paddle tw) (- WORLD-HEIGHT (/ PADDLE-TALL 2))
     (draw-faller (fw-fallers tw) tw))))
 
-
-; draw-faller: [a List-of-Posn] -> Image
-; a function to draw fallers on background
-; examples:
-#|
-(check-expect (draw-faller (list (make-posn 80 80))
+; TODO: Add tests for "Shrink" and "Grow"
+; draw-faller: List-of-Faller Faller-world -> Image
+; Draw fallers on background
+; Examples:
+(check-expect (draw-faller (list (make-faller "Normal" (make-posn 80 80)))
                            (make-fw 175 "right" '() 10))
               (place-image
                FALLER-IMAGE
                80 80
                BACKGROUD-IMAGE))
-|#
-; Strategy: structure decomposition
+; Strategy: Structural Decomposition
 (define (draw-faller faller tw)
   (cond
     [(empty? faller) BACKGROUD-IMAGE]
@@ -295,18 +293,16 @@ increasing *downward*.
           (posn-y (faller-position (first faller)))
           (draw-faller (rest faller) tw)))]))
 
-; will-touch?: Num Num -> Boolean
+; will-touch?: Number Number -> Boolean
 ; Checks the x position of paddle and x position of the faller
 ; if faller is above paddle, return true, else false
 ; Strategy: Function Composition
 (define (will-touch? paddle-x faller-x)
   (<= (abs (- paddle-x faller-x)) (/ PADDLE-WIDE 2)))
 
-
-
 ; key: Faller-world KeyEvent -> Faller-world
-; change direction and minus points when you tap the screen
-; examples:
+; Change direction and minus points when you tap the screen
+; Examples:
 (check-expect (key (make-fw 100 "right" '() 10) "left")
               (make-fw 100 "left" '() 9))
 (check-expect (key (make-fw 100 "left" '() 10) "right")
@@ -315,7 +311,7 @@ increasing *downward*.
               (make-fw 100 "right" '() 10))
 (check-expect (key (make-fw 100 "left" '() 10) "left")
               (make-fw 100 "left" '() 10))
-; Strategy: structure decomposition
+; Strategy: Structural Decomposition
 (define (key tw cur-key)
   (cond
     [(key=? cur-key (fw-direction tw)) tw]
@@ -334,9 +330,9 @@ increasing *downward*.
     [else tw]))
 
 ; tick: Faller-world -> Faller-world
-; update the status after every tick
-; examples:
-; (check-expect (tick (make-fw 28 "left" '() 10)) (make-fw 27 "left" '() 10)) 
+; Update the status after every tick
+; Examples:
+(check-expect (tick (make-fw 28 "left" '() 10)) (make-fw 27 "left" '() 10)) 
 (define (tick tw)
   (make-fw
    (paddle-pos tw)
@@ -344,15 +340,13 @@ increasing *downward*.
    (fallers-down (maybe-add-faller (fw-fallers tw)) (fw-paddle tw))
    (point-count tw)))
 
-
-
 ; paddle-direct: Faller-world -> Direction
 ; Change the direction if paddle reach the left edge or the right edge
-; examples:
+; Examples:
 (check-expect (paddle-direct (make-fw 175 "right" '() 10)) "left")
 (check-expect (paddle-direct (make-fw 25 "left" '() 10)) "right")
 (check-expect (paddle-direct (make-fw 100 "right" '() 10)) "right")
-; Strategy: structure decomposition
+; Strategy: Structural Decomposition + Function Composition
 (define (paddle-direct tw)
   (cond
     [( equal? LEFT-SIDE (fw-paddle tw)) "right"]
@@ -361,10 +355,10 @@ increasing *downward*.
 
 ; paddle-pos: Faller-world -> Number
 ; Move the paddle
-; examples:
+; Examples:
 (check-expect (paddle-pos (make-fw 100 "right" '() 10)) 101)
 (check-expect (paddle-pos (make-fw 100 "left" '() 10)) 99)
-; Strategy: structure decomposition
+; Strategy: Structural Decomposition + Function Composition
 (define (paddle-pos tw)
   (cond
     [ (equal? (fw-direction tw) "left")
@@ -372,20 +366,22 @@ increasing *downward*.
     [ (equal? (fw-direction tw) "right")
       (+ (fw-paddle tw) 1)]))
 
-
-; fallers-down: [a List-of-Posn] number -> [a list of posn]
-; Move all the fallers down the screen by one pixel and remove it from the world
+; fallers-down: List-of-Faller Number -> List-of-Faller
+; Move all the fallers down the screen by one pixel
+; and remove it from the world
 ; if fallers touch the botton or overlap with paddle
-; examples:
-#|
-(check-expect (fallers-down (list (make-posn 100 100)(make-posn 80 80)) 45)
-              (list (make-posn 100 101)(make-posn 80 81)))
-(check-expect (fallers-down (list (make-posn 100 300)(make-posn 80 80)) 45)
-              (list (make-posn 80 81)))
-(check-expect (fallers-down (list (make-posn 45 298)(make-posn 80 80)) 45)
-              (list (make-posn 80 81)))
-|#
-; Strategy: structure decomposition
+; Examples:
+(check-expect (fallers-down (list (make-faller "Normal" (make-posn 100 100))
+                                  (make-faller "Normal" (make-posn 80 80))) 45)
+              (list (make-faller "Normal" (make-posn 100 101))
+                    (make-faller "Normal" (make-posn 80 81))))
+(check-expect (fallers-down (list (make-faller "Normal" (make-posn 100 300))
+                                  (make-faller "Normal" (make-posn 80 80))) 45)
+              (list (make-faller "Normal" (make-posn 80 81))))
+(check-expect (fallers-down (list (make-faller "Normal" (make-posn 45 298))
+                                  (make-faller "Normal" (make-posn 80 80))) 45)
+              (list (make-faller "Normal" (make-posn 80 81))))
+; Strategy: Structural Decomposition
 (define (fallers-down items paddle)
   (cond
     [ (empty? items) '() ]
@@ -393,48 +389,49 @@ increasing *downward*.
                   (faller-hit-paddle? (faller-position (first items)) paddle))
               (fallers-down(rest items) paddle)
               (cons (make-faller (faller-type (first items)) (make-posn
-                     (posn-x (faller-position (first items)))
-                     (+ (posn-y (faller-position (first items))) 1)))
+                                                              (posn-x (faller-position (first items)))
+                                                              (+ (posn-y (faller-position (first items))) 1)))
                     (fallers-down(rest items) paddle)))]))
 
-
-; point-count Faller-world -> number
-; update scores
-; examples:
-#|
+; point-count Faller-world -> Number
+; Update scores
+; Examples:
 (check-expect (point-count
                (make-fw
                 100
                 "right"
-                (list (make-posn 100 295)(make-posn 80 81))
+                (list (make-faller "Normal" (make-posn 100 295))
+                      (make-faller "Normal" (make-posn 80 81)))
                 10)) 20)
 (check-expect (point-count
                (make-fw
                 100
                 "right"
-                (list (make-posn 100 295)(make-posn 160 300))
+                (list (make-faller "Normal" (make-posn 100 295))
+                      (make-faller "Normal" (make-posn 160 300)))
                 10)) 19)
-|#
+; Strategy: Structural Decomposition
 (define (point-count tw)
   (less-zero? (- (+ (fw-score tw)
                     (* 10 (count-hitting-fallers (fw-fallers tw) (fw-paddle tw))))
                  (count-hitting-bottom (fw-fallers tw) (fw-paddle tw)))))
 
-; less-zero?: number -> number
-; judge score is less than zero
-;examples:
+; less-zero?: Number -> Number
+; Judge score is less than zero
+; Examples:
 (check-expect (less-zero? 1) 1)
 (check-expect (less-zero? -1) 0)
+; Strategy: Function Composition
 (define (less-zero? score)
   (if (> score 0) score 0))
 
-
-; count-hitting-fallers: [a List-of-Posn] number -> number
-; count how many fallers hit paddle
-; examples:
-;(check-expect
-; (count-hitting-fallers (list (make-posn 27 300) (make-posn 60 300)) 75) 1)
-; Strategy: structure decomposition
+; count-hitting-fallers: List-of-Faller Number -> Number
+; Count how many fallers hit paddle
+; Examples:
+(check-expect
+ (count-hitting-fallers (list (make-faller "Normal" (make-posn 27 300))
+                              (make-faller "Normal" (make-posn 60 300))) 75) 1)
+; Strategy: Structural Decomposition
 (define (count-hitting-fallers fallers paddle-x)
   (cond
     [(empty? fallers) 0]
@@ -443,14 +440,12 @@ increasing *downward*.
               (count-hitting-fallers (rest fallers) paddle-x))]))
 
 ; faller-hit-paddle? Posn Number -> Boolean
-; judge whether faller hit paddle
-; example
-#|
+; Judge whether faller hit paddle
+; Example
 (check-expect (faller-hit-paddle? (make-posn 60 298) 85) #true)
 (check-expect (faller-hit-paddle? (make-posn 60 298) 94) #true)
 (check-expect (faller-hit-paddle? (make-posn 80 298) 47) #true)
 (check-expect (faller-hit-paddle? (make-posn 80 298) 140) #false)
-|#
 (define (faller-hit-paddle? faller paddle-x)
   (and
    (< (- paddle-x (/ PADDLE-WIDE 2))
@@ -459,12 +454,13 @@ increasing *downward*.
       (+ paddle-x (/ PADDLE-WIDE 2)))
    (< (- WORLD-HEIGHT PADDLE-TALL (/ FALLER-SIZE 2)) (posn-y faller))))
 
-; count-hitting-bottom [a List-of-Posn] number -> number
-; count how many fallers hit bottom
-; examples:
-;(check-expect
-; (count-hitting-bottom (list (make-posn 10 300) (make-posn 50 300)) 60) 1)
-; Strategy: structure decomposition
+; count-hitting-bottom: List-of-Faller Number -> Number
+; Count how many fallers hit bottom
+; Examples:
+(check-expect
+ (count-hitting-bottom (list (make-faller "Normal" (make-posn 10 300))
+                             (make-faller "Normal" (make-posn 50 300))) 60) 1)
+; Strategy: Structural Decomposition + Function Composition
 (define (count-hitting-bottom fallers paddle-x)
   (cond
     [(empty? fallers) 0]
@@ -473,10 +469,11 @@ increasing *downward*.
               (count-hitting-bottom (rest fallers) paddle-x))]))
 
 ; faller-hit-bottom? Posn Number -> Boolean
-; judge whether faller hit bottom
-; examples:
-;(check-expect (faller-hit-bottom? (make-posn 60 298) 85) #false)
-; (check-expect (faller-hit-bottom? (make-posn 60 300) 110) #true)
+; Judge whether faller hit bottom
+; Examples:
+(check-expect (faller-hit-bottom? (make-posn 60 298) 85) #false)
+(check-expect (faller-hit-bottom? (make-posn 60 300) 110) #true)
+; Strategy: Function Composition
 (define (faller-hit-bottom? faller paddle-x)
   (and (equal? WORLD-HEIGHT (posn-y faller))
        (not (faller-hit-paddle? faller paddle-x))))
@@ -516,7 +513,6 @@ increasing *downward*.
 ; Adds a random faller with probabilty
 ; `1/INV-P-FALLERS`, but only if there are fewer than `MAX-FALLERS`
 ; fallers aleady.
-;
 ; Example:
 (check-expect
  (<= 4
@@ -528,19 +524,6 @@ increasing *downward*.
              (make-posn 3 3))))
      5)
  #true)
-
-; Strategy: decision tree
-#;
-(define (maybe-add-faller fallers)
-  (cond
-    [(< (length fallers) MAX-FALLERS)
-     (cond
-       [(zero? (random INV-P-FALLER))
-        (cons (make-posn (random WORLD-WIDTH) 0)
-              fallers)]
-       [else fallers])]
-    [else fallers]))
-
 
 ; maybe-add-faller : List-of-Faller -> List-of-Faller
 ; Adds a random faller with probabilty
@@ -576,4 +559,4 @@ increasing *downward*.
     [on-key  key]
     [to-draw draw]))
 
-; (start 0)
+(start 0)
