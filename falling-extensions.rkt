@@ -75,21 +75,27 @@ bottom or if it has hit the paddle.
 ;
 
 ; A Faller is:
-;   (make-faller Type Posn)
+;   (make-faller Type Posn Natural)
 ; interp.: if `a-faller` is a Faller then all of:
 ; - (faller-type a-faller) is a Type
 ; - (faller-position a-faller) is a Posn of the Faller
-(define-struct faller [type position])
+; - (faller-count a-faller) is the number place of this faller (79th faller)
+(define-struct faller [type position count])
 
 ; A Type is one of:
 ; - "Shrink"
 ; - "Grow"
 ; - "Normal"
 
-
+; A Paddle is:
+;   (make-paddle Number Number)
+; - interp.: if `a-paddle` is a Paddle then all of:
+; - (paddle-xposition a-paddle) is the x coordinate of the paddle
+; - (paddle-drawn a-paddle) is the image of the paddle
+(define-struct paddle (xposition drawn))
 
 ; A Faller-world is
-;   (make-fw Number Direction List-of-Faller Natural)
+;   (make-fw Number Direction List-of-Faller Natural Natural)
 ; interp.: if `a-fw` is a Faller-world then all of:
 ; - (fw-paddle a-fw) is the x coordinate of the paddle,
 ; - (fw-direction a-fw) gives which direction the paddle is moving,
@@ -171,16 +177,8 @@ added will be included in the commit.
 (define PADDLE-WIDE 50)
 (define PADDLE-TALL 12)
 (define FALLER-SIZE 20)
+
 ; Paddle Image
-; TO-DO: Make the paddle-image somehow be dynamic too
-; Maybe creating a struct for the paddle:
-; Paddle is:
-; (make-paddle Number Number Image)
-; interp.: if `a-paddle` is a Paddle then all of:
-; (paddle-wide a-paddle) is the width of the paddle for the image
-; (paddle-tall a-paddle) is the height of the paddle for the image
-; (paddle-image a-paddle) is the image of the paddle
-; Potentially only do wide + tall and pass those into the definition below
 (define PADDLE-IMAGE (rectangle PADDLE-WIDE PADDLE-TALL "solid" "black"))
 ; Faller Images
 (define FALLER-IMAGE (star (/ FALLER-SIZE 2) "solid" "yellow"))
@@ -248,7 +246,7 @@ increasing *downward*.
 ; draw: Faller-world -> Image
 ; To show the images on screen(fallers and the paddle)
 ; Examples:
-(check-expect (draw (make-fw 175 "right" '() 10))
+(check-expect (draw (make-fw (make-paddle 175 PADDLE-IMAGE) "right" '() 10))
               (place-image
                (text "10" 20 "black")
                25 25
@@ -256,24 +254,61 @@ increasing *downward*.
                 PADDLE-IMAGE
                 175 294
                 BACKGROUD-IMAGE)))
+
 ; Strategy: Structural Decomposition
 (define (draw tw)
   (place-image
    (text (number->string (fw-score tw)) 20 "black")
    25 25
    (place-image
-    PADDLE-IMAGE
-    (fw-paddle tw) (- WORLD-HEIGHT (/ PADDLE-TALL 2))
+    (paddle-drawn (fw-paddle tw))
+    (paddle-xposition (fw-paddle tw)) (- WORLD-HEIGHT
+                                         (/ (image-height
+                                             (paddle-drawn (fw-paddle tw))) 2))
     (draw-faller (fw-fallers tw) tw))))
 
-; TODO: Add tests for "Shrink" and "Grow"
 ; draw-faller: List-of-Faller Faller-world -> Image
 ; Draw fallers on background
-; Examples:
-(check-expect (draw-faller (list (make-faller "Normal" (make-posn 80 80)))
-                           (make-fw 175 "right" '() 10))
+(check-expect (draw-faller (list (make-faller "Normal" (make-posn 80 80) 1))
+                           (make-fw (make-paddle 175 PADDLE-IMAGE)
+                                    "right" '() 10))
               (place-image
                FALLER-IMAGE
+               80 80
+               BACKGROUD-IMAGE))
+(check-expect (draw-faller (list (make-faller "Grow" (make-posn 80 80) 1))
+                           (make-fw (make-paddle 175 PADDLE-IMAGE)
+                                    "right" '() 10))
+              (place-image
+               FALLER-GROW-IMAGE
+               80 80
+               BACKGROUD-IMAGE))
+(check-expect (draw-faller (list (make-faller "Shrink" (make-posn 80 80) 1))
+                           (make-fw (make-paddle 175 PADDLE-IMAGE)
+                                    "right" '() 10))
+              (place-image
+               FALLER-SHRINK-IMAGE
+               80 80
+               BACKGROUD-IMAGE))
+(check-expect (draw-faller (list (make-faller "Normal" (make-posn 80 80) 1))
+                           (make-fw (make-paddle 80 PADDLE-IMAGE)
+                                    "right" '() 10))
+              (place-image
+               FALLER-WILL-TOUCH-IMAGE
+               80 80
+               BACKGROUD-IMAGE))
+(check-expect (draw-faller (list (make-faller "Grow" (make-posn 80 80) 1))
+                           (make-fw (make-paddle 80 PADDLE-IMAGE)
+                                    "right" '() 10))
+              (place-image
+               FALLER-GROW-WILL-TOUCH-IMAGE
+               80 80
+               BACKGROUD-IMAGE))
+(check-expect (draw-faller (list (make-faller "Shrink" (make-posn 80 80) 1))
+                           (make-fw (make-paddle 80 PADDLE-IMAGE)
+                                    "right" '() 10))
+              (place-image
+               FALLER-SHRINK-WILL-TOUCH-IMAGE
                80 80
                BACKGROUD-IMAGE))
 ; Strategy: Structural Decomposition
@@ -281,24 +316,56 @@ increasing *downward*.
   (cond
     [(empty? faller) BACKGROUD-IMAGE]
     [else
-     (if (will-touch? (fw-paddle tw) (posn-x (faller-position (first faller))))
+     (if (will-touch? (fw-paddle tw)
+                      (posn-x (faller-position (first faller))))
          (place-image
-          FALLER-WILL-TOUCH-IMAGE
+          (draw-faller-helper-will-touch (faller-type (first faller)))
           (posn-x (faller-position (first faller)))
           (posn-y (faller-position (first faller)))
           (draw-faller (rest faller) tw))  
          (place-image
-          FALLER-IMAGE
+          (draw-faller-helper (faller-type (first faller)))
           (posn-x (faller-position (first faller)))
           (posn-y (faller-position (first faller)))
           (draw-faller (rest faller) tw)))]))
 
-; will-touch?: Number Number -> Boolean
+; draw-faller-helper: Type -> Image
+; Passes the type of the faller and returns the associated faller image
+(check-expect (draw-faller-helper "Grow") FALLER-GROW-IMAGE)
+(check-expect (draw-faller-helper "Shrink") FALLER-SHRINK-IMAGE)
+(check-expect (draw-faller-helper "Normal") FALLER-IMAGE)
+; Strategy: Function Composition
+(define (draw-faller-helper type)
+  (cond
+    [(string=? type "Grow") FALLER-GROW-IMAGE]
+    [(string=? type "Shrink") FALLER-SHRINK-IMAGE]
+    [else FALLER-IMAGE]))
+
+; draw-faller-helper-will-touch: Type -> Image
+; Passes the type of the faller and returns the associated faller image
+; for a faller that's directly above the paddle
+(check-expect (draw-faller-helper-will-touch "Grow")
+              FALLER-GROW-WILL-TOUCH-IMAGE)
+(check-expect (draw-faller-helper-will-touch "Shrink")
+              FALLER-SHRINK-WILL-TOUCH-IMAGE)
+(check-expect (draw-faller-helper-will-touch "Normal")
+              FALLER-WILL-TOUCH-IMAGE)
+; Strategy: Function Composition
+(define (draw-faller-helper-will-touch type)
+  (cond
+    [(string=? type "Grow") FALLER-GROW-WILL-TOUCH-IMAGE]
+    [(string=? type "Shrink") FALLER-SHRINK-WILL-TOUCH-IMAGE]
+    [else FALLER-WILL-TOUCH-IMAGE]))
+
+; will-touch?: Paddle Number -> Boolean
 ; Checks the x position of paddle and x position of the faller
 ; if faller is above paddle, return true, else false
+(check-expect (will-touch? (make-paddle 50 PADDLE-IMAGE) 50) #true)
+(check-expect (will-touch? (make-paddle 50 PADDLE-IMAGE) 80) #false)
 ; Strategy: Function Composition
-(define (will-touch? paddle-x faller-x)
-  (<= (abs (- paddle-x faller-x)) (/ PADDLE-WIDE 2)))
+(define (will-touch? paddle faller-x)
+  (<= (abs (- (paddle-xposition paddle) faller-x))
+      (/ (image-width (paddle-drawn paddle)) 2)))
 
 ; key: Faller-world KeyEvent -> Faller-world
 ; Change direction and minus points when you tap the screen
@@ -331,89 +398,105 @@ increasing *downward*.
 
 ; tick: Faller-world -> Faller-world
 ; Update the status after every tick
+; TODO: Add1 needs to count fallers added, not ticks
 ; Examples:
-(check-expect (tick (make-fw 28 "left" '() 10)) (make-fw 27 "left" '() 10)) 
+; TODO: FIX THIS TEST CASE BELOW: Has to do with maybe-add
+(check-expect (tick (make-fw (make-paddle 28 PADDLE-IMAGE) "left" '() 10))
+              (make-fw (make-paddle 27 PADDLE-IMAGE) "left" '() 10)) 
 (define (tick tw)
   (make-fw
-   (paddle-pos tw)
+   (make-paddle (paddle-pos tw) (paddle-drawn (fw-paddle tw)))
    (paddle-direct tw)
    (fallers-down (maybe-add-faller (fw-fallers tw)) (fw-paddle tw))
    (point-count tw)))
 
 ; paddle-direct: Faller-world -> Direction
 ; Change the direction if paddle reach the left edge or the right edge
-; Examples:
-(check-expect (paddle-direct (make-fw 175 "right" '() 10)) "left")
-(check-expect (paddle-direct (make-fw 25 "left" '() 10)) "right")
-(check-expect (paddle-direct (make-fw 100 "right" '() 10)) "right")
+(check-expect (paddle-direct
+               (make-fw (make-paddle 175 PADDLE-IMAGE) "right" '() 10)) "left")
+(check-expect (paddle-direct
+               (make-fw (make-paddle 25 PADDLE-IMAGE) "left" '() 10)) "right")
+(check-expect (paddle-direct
+               (make-fw (make-paddle 100 PADDLE-IMAGE) "right" '() 10)) "right")
 ; Strategy: Structural Decomposition + Function Composition
+; TODO: Need to change LEFT-SIDE & RIGHT-SIDE to
+; adjust for when the paddle shrinks or grows
 (define (paddle-direct tw)
   (cond
-    [( equal? LEFT-SIDE (fw-paddle tw)) "right"]
-    [( equal? RIGHT-SIDE (fw-paddle tw)) "left"]
+    [( equal? LEFT-SIDE (paddle-xposition (fw-paddle tw))) "right"]
+    [( equal? RIGHT-SIDE (paddle-xposition (fw-paddle tw))) "left"]
     [else (fw-direction tw)]))
 
 ; paddle-pos: Faller-world -> Number
 ; Move the paddle
-; Examples:
-(check-expect (paddle-pos (make-fw 100 "right" '() 10)) 101)
-(check-expect (paddle-pos (make-fw 100 "left" '() 10)) 99)
+(check-expect (paddle-pos
+               (make-fw (make-paddle 100 PADDLE-IMAGE) "right" '() 10)) 101)
+(check-expect (paddle-pos
+               (make-fw (make-paddle 100 PADDLE-IMAGE) "left" '() 10)) 99)
 ; Strategy: Structural Decomposition + Function Composition
 (define (paddle-pos tw)
   (cond
     [ (equal? (fw-direction tw) "left")
-      (- (fw-paddle tw) 1)]
+      (- (paddle-xposition (fw-paddle tw)) 1)]
     [ (equal? (fw-direction tw) "right")
-      (+ (fw-paddle tw) 1)]))
+      (+ (paddle-xposition (fw-paddle tw)) 1)]))
 
-; fallers-down: List-of-Faller Number -> List-of-Faller
+; fallers-down: List-of-Faller Paddle -> List-of-Faller
 ; Move all the fallers down the screen by one pixel
 ; and remove it from the world
 ; if fallers touch the botton or overlap with paddle
-; Examples:
-(check-expect (fallers-down (list (make-faller "Normal" (make-posn 100 100))
-                                  (make-faller "Normal" (make-posn 80 80))) 45)
-              (list (make-faller "Normal" (make-posn 100 101))
-                    (make-faller "Normal" (make-posn 80 81))))
-(check-expect (fallers-down (list (make-faller "Normal" (make-posn 100 300))
-                                  (make-faller "Normal" (make-posn 80 80))) 45)
-              (list (make-faller "Normal" (make-posn 80 81))))
-(check-expect (fallers-down (list (make-faller "Normal" (make-posn 45 298))
-                                  (make-faller "Normal" (make-posn 80 80))) 45)
-              (list (make-faller "Normal" (make-posn 80 81))))
+(check-expect (fallers-down (list (make-faller "Normal" (make-posn 100 100) 1)
+                                  (make-faller "Normal" (make-posn 80 80) 2))
+                            (make-paddle 45 PADDLE-IMAGE))
+              (list (make-faller "Normal" (make-posn 100 101) 1)
+                    (make-faller "Normal" (make-posn 80 81) 2)))
+(check-expect (fallers-down (list (make-faller "Normal" (make-posn 100 300) 1)
+                                  (make-faller "Normal" (make-posn 80 80) 2))
+                            (make-paddle 45 PADDLE-IMAGE))
+              (list (make-faller "Normal" (make-posn 80 81) 2)))
+(check-expect (fallers-down (list (make-faller "Normal" (make-posn 45 298) 1)
+                                  (make-faller "Normal" (make-posn 80 80) 2))
+                            (make-paddle 45 PADDLE-IMAGE))
+              (list (make-faller "Normal" (make-posn 80 81) 2)))
 ; Strategy: Structural Decomposition
 (define (fallers-down items paddle)
   (cond
     [ (empty? items) '() ]
     [else (if (or (faller-hit-bottom? (faller-position (first items)) paddle)
-                  (faller-hit-paddle? (faller-position (first items)) paddle))
+                  (faller-hit-paddle? (faller-position (first items))
+                                      paddle))
               (fallers-down(rest items) paddle)
-              (cons (make-faller (faller-type (first items)) (make-posn
-                                                              (posn-x (faller-position (first items)))
-                                                              (+ (posn-y (faller-position (first items))) 1)))
+              (cons (make-faller
+                     (faller-type (first items)) (make-posn
+                                                  (posn-x (faller-position
+                                                           (first items)))
+                                                  (+ (posn-y (faller-position
+                                                              (first items)))
+                                                     1))
+                     (faller-count (first items)))
                     (fallers-down(rest items) paddle)))]))
 
-; point-count Faller-world -> Number
+; point-count: Faller-world -> Number
 ; Update scores
-; Examples:
 (check-expect (point-count
                (make-fw
-                100
+                (make-paddle 100 PADDLE-IMAGE)
                 "right"
-                (list (make-faller "Normal" (make-posn 100 295))
-                      (make-faller "Normal" (make-posn 80 81)))
+                (list (make-faller "Normal" (make-posn 100 295) 1)
+                      (make-faller "Normal" (make-posn 80 81) 2))
                 10)) 20)
 (check-expect (point-count
                (make-fw
-                100
+                (make-paddle 100 PADDLE-IMAGE)
                 "right"
-                (list (make-faller "Normal" (make-posn 100 295))
-                      (make-faller "Normal" (make-posn 160 300)))
+                (list (make-faller "Normal" (make-posn 100 295) 1)
+                      (make-faller "Normal" (make-posn 160 300) 2))
                 10)) 19)
 ; Strategy: Structural Decomposition
 (define (point-count tw)
   (less-zero? (- (+ (fw-score tw)
-                    (* 10 (count-hitting-fallers (fw-fallers tw) (fw-paddle tw))))
+                    (* 10 (count-hitting-fallers (fw-fallers tw)
+                                                 (fw-paddle tw))))
                  (count-hitting-bottom (fw-fallers tw) (fw-paddle tw)))))
 
 ; less-zero?: Number -> Number
@@ -425,58 +508,67 @@ increasing *downward*.
 (define (less-zero? score)
   (if (> score 0) score 0))
 
-; count-hitting-fallers: List-of-Faller Number -> Number
+; count-hitting-fallers: List-of-Faller Paddle -> Number
 ; Count how many fallers hit paddle
-; Examples:
 (check-expect
- (count-hitting-fallers (list (make-faller "Normal" (make-posn 27 300))
-                              (make-faller "Normal" (make-posn 60 300))) 75) 1)
+ (count-hitting-fallers (list (make-faller "Normal" (make-posn 27 300) 1)
+                              (make-faller "Normal" (make-posn 60 300) 2))
+                        (make-paddle 75 PADDLE-IMAGE)) 1)
 ; Strategy: Structural Decomposition
-(define (count-hitting-fallers fallers paddle-x)
+(define (count-hitting-fallers fallers paddle)
   (cond
     [(empty? fallers) 0]
-    [else (if (faller-hit-paddle? (faller-position (first fallers)) paddle-x)
-              (+ 1 (count-hitting-fallers (rest fallers) paddle-x))
-              (count-hitting-fallers (rest fallers) paddle-x))]))
+    [else (if (faller-hit-paddle? (faller-position (first fallers)) paddle)
+              (+ 1 (count-hitting-fallers (rest fallers)
+                                          paddle))
+              (count-hitting-fallers (rest fallers)
+                                     paddle))]))
 
-; faller-hit-paddle? Posn Number -> Boolean
+; faller-hit-paddle? Posn Paddle -> Boolean
 ; Judge whether faller hit paddle
-; Example
-(check-expect (faller-hit-paddle? (make-posn 60 298) 85) #true)
-(check-expect (faller-hit-paddle? (make-posn 60 298) 94) #true)
-(check-expect (faller-hit-paddle? (make-posn 80 298) 47) #true)
-(check-expect (faller-hit-paddle? (make-posn 80 298) 140) #false)
-(define (faller-hit-paddle? faller paddle-x)
+(check-expect (faller-hit-paddle? (make-posn 60 298)
+                                  (make-paddle 85 PADDLE-IMAGE)) #true)
+(check-expect (faller-hit-paddle? (make-posn 60 298)
+                                  (make-paddle 94 PADDLE-IMAGE)) #true)
+(check-expect (faller-hit-paddle? (make-posn 80 298)
+                                  (make-paddle 47 PADDLE-IMAGE)) #true)
+(check-expect (faller-hit-paddle? (make-posn 80 298)
+                                  (make-paddle 140 PADDLE-IMAGE)) #false)
+; Strategy: Structural Decomposition + Function Composition
+(define (faller-hit-paddle? faller paddle)
   (and
-   (< (- paddle-x (/ PADDLE-WIDE 2))
+   (< (- (paddle-xposition paddle) (/ (image-width (paddle-drawn paddle)) 2))
       (+ (posn-x faller) (/ FALLER-SIZE 2)))
    (< (- (posn-x faller) (/ FALLER-SIZE 2))
-      (+ paddle-x (/ PADDLE-WIDE 2)))
-   (< (- WORLD-HEIGHT PADDLE-TALL (/ FALLER-SIZE 2)) (posn-y faller))))
+      (+ (paddle-xposition paddle) (/ (image-width (paddle-drawn paddle)) 2)))
+   (< (- WORLD-HEIGHT (image-height (paddle-drawn paddle))
+         (/ FALLER-SIZE 2)) (posn-y faller))))
 
-; count-hitting-bottom: List-of-Faller Number -> Number
+; count-hitting-bottom: List-of-Faller Paddle -> Number
 ; Count how many fallers hit bottom
-; Examples:
 (check-expect
- (count-hitting-bottom (list (make-faller "Normal" (make-posn 10 300))
-                             (make-faller "Normal" (make-posn 50 300))) 60) 1)
+ (count-hitting-bottom (list (make-faller "Normal" (make-posn 10 300) 1)
+                             (make-faller "Normal" (make-posn 50 300) 2))
+                       (make-paddle 60 PADDLE-IMAGE)) 1)
 ; Strategy: Structural Decomposition + Function Composition
-(define (count-hitting-bottom fallers paddle-x)
+(define (count-hitting-bottom fallers paddle)
   (cond
     [(empty? fallers) 0]
-    [else (if (faller-hit-bottom? (faller-position (first fallers)) paddle-x)
-              (+ 1 (count-hitting-bottom (rest fallers) paddle-x))
-              (count-hitting-bottom (rest fallers) paddle-x))]))
+    [else (if (faller-hit-bottom? (faller-position (first fallers)) paddle)
+              (+ 1 (count-hitting-bottom (rest fallers) paddle))
+              (count-hitting-bottom (rest fallers) paddle))]))
 
-; faller-hit-bottom? Posn Number -> Boolean
+; faller-hit-bottom? Posn Paddle -> Boolean
 ; Judge whether faller hit bottom
 ; Examples:
-(check-expect (faller-hit-bottom? (make-posn 60 298) 85) #false)
-(check-expect (faller-hit-bottom? (make-posn 60 300) 110) #true)
+(check-expect (faller-hit-bottom? (make-posn 60 298)
+                                  (make-paddle 85 PADDLE-IMAGE)) #false)
+(check-expect (faller-hit-bottom? (make-posn 60 300)
+                                  (make-paddle 110 PADDLE-IMAGE)) #true)
 ; Strategy: Function Composition
-(define (faller-hit-bottom? faller paddle-x)
+(define (faller-hit-bottom? faller paddle)
   (and (equal? WORLD-HEIGHT (posn-y faller))
-       (not (faller-hit-paddle? faller paddle-x))))
+       (not (faller-hit-paddle? faller paddle))))
 
 
 ;
@@ -509,38 +601,50 @@ increasing *downward*.
 ;; below just checks the length of the resulting
 ;; list.
 
-; maybe-add-faller : List-of-Posn -> List-of-Posn
-; Adds a random faller with probabilty
-; `1/INV-P-FALLERS`, but only if there are fewer than `MAX-FALLERS`
-; fallers aleady.
-; Example:
-(check-expect
- (<= 4
-     (length
-      (maybe-add-faller
-       (list (make-posn 0 0)
-             (make-posn 1 1)
-             (make-posn 2 2)
-             (make-posn 3 3))))
-     5)
- #true)
-
 ; maybe-add-faller : List-of-Faller -> List-of-Faller
 ; Adds a random faller with probabilty
 ; `1/INV-P-FALLERS`, but only if there are fewer than `MAX-FALLERS`
 ; fallers aleady.
 ; TODO : Adjust for Shrink and Grow fallers
+(check-expect
+ (<= 4
+     (length
+      (maybe-add-faller
+       (list (make-faller "Normal" (make-posn 0 0) 1)
+             (make-faller "Normal" (make-posn 1 1) 2)
+             (make-faller "Normal" (make-posn 2 2) 3)
+             (make-faller "Normal" (make-posn 3 3) 4))))
+     5)
+ #true)
+; Strategy: Structural Decomposition + Function Composition
 (define (maybe-add-faller fallers)
   (cond
     [(< (length fallers) MAX-FALLERS)
      (cond
        [(zero? (random INV-P-FALLER))
-        (cons (make-faller "Normal"
-                           (make-posn (random WORLD-WIDTH) 0))
-              fallers)]
+        (if (empty? fallers)
+            (cons (make-faller "Normal"
+                               (make-posn (random WORLD-WIDTH) 0)
+                               -1) fallers)
+            (cons (make-faller (find-faller-type (first fallers))
+                               (make-posn (random WORLD-WIDTH) 0)
+                               (add1 (faller-count (first fallers))))
+                  fallers))]
        [else fallers])]
-    [else fallers]))
+    [else fallers])) 
 
+; find-faller-type: Faller -> String
+; Finds the type of the faller
+; TODO: Work in progress 
+(define (find-faller-type faller)
+  (cond
+    [(= 0 (modulo (faller-count faller) 6)) "Grow"]
+    [(= 0 (modulo (faller-count faller) 25)) "Shrink"]
+    [else "Normal"]))
+
+; Fallers-Fallen (every 10th faller is a shrinking faller)
+; (every 5th faller is a growing faller)
+; Everything else is a normal faller
 
 ;; You'll use this `start` function to start your
 ;; faller game once you’ve completed designing the
@@ -554,7 +658,8 @@ increasing *downward*.
 ;  - (start 0)
 
 (define (start _dummy)
-  (big-bang (make-fw (/ WORLD-WIDTH 2) "right" '() 0)
+  (big-bang (make-fw (make-paddle
+                      (/ WORLD-WIDTH 2) PADDLE-IMAGE) "right" '() 0)
     [on-tick tick 1/200]
     [on-key  key]
     [to-draw draw]))

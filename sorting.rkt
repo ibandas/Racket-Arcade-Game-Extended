@@ -45,30 +45,39 @@ of each function using Big Oh notation.
 
 |#
 
-;;List -> List
-;;picks the odd numbers in the list
+;; elements_odd: List-of-Number -> List-of-Odd-Number
+;; Picks the odd numbers in the list
+;; Strategy: Structural Decomposition
+(check-expect (elements_odd '()) '())
+(check-expect (elements_odd (list 1)) (list 1))
+(check-expect (elements_odd (list 1 2 3 4 5 6)) (list 1 3 5))
 (define (elements_odd L1)
-	(if (empty? L1) '()
-		(if (empty? (rest L1)) (list (first L1))
-			(cons (first L1) (elements_odd (rest(rest L1)))))))
-;;List-> List
-;;picks the even numbers in the list
+        (if (empty? L1) '()
+                (if (empty? (rest L1)) (list (first L1))
+                        (cons (first L1) (elements_odd (rest(rest L1)))))))
+
+;; elements_even: List-of-Number -> List-of-Even-Numbers
+;; Picks the even numbers in the list
+(check-expect (elements_even '()) '())
+(check-expect (elements_even (list 2)) '())
+(check-expect (elements_even (list 1 2 3 4 5 6)) (list 2 4 6))
+;; Strategy: Structural Decomposition
 (define (elements_even L1)
-	(if (empty? L1) '()
-		(if (empty? (rest L1)) '()
-			(cons (first(rest L1)) (elements_even (rest (rest L1)))))))
+        (if (empty? L1) '()
+                (if (empty? (rest L1)) '()
+                        (cons (first(rest L1))
+                              (elements_even (rest (rest L1)))))))
 
-;; [List of Natural] -> [List 1 of Natural] [List 2 of Natural]
-;; divides a list into two:
-;;1.odd numbered list
-;;2.even numbered list
-;;example
+;; [List of Natural] -> [List-of-Odd-Natural] [List-of-Even-Natural]
+;; Divides a list into two:
+;; 1.odd numbered list
+;; 2.even numbered list
 (check-expect( divide '(1 2 3 4 5 6 7 8 9)) '((1 3 5 7 9)(2 4 6 8)))
-;;strategy: function Composition
+;; Strategy: Function Composition
 (define (divide L1)
-	(cons (elements_odd L1) (cons (elements_even L1) `())))
+        (cons (elements_odd L1) (cons (elements_even L1) `())))
 
-;;List List->List
+;; List List->List
 ;; Concatanates two different lists.
 ;; Examples:
 (check-expect ( list_concat '() '(1 2 3)) '(1 2 3))
@@ -81,25 +90,24 @@ of each function using Big Oh notation.
         ... (empty? L2) L1...
         ... (L1) L2...)
 |#
-
 (define (list_concat L1 L2)
-	(if (empty? L1) L2
-		(if (empty? L2) L1
-			(if (< (first L1) (first L2))
-				(cons (first L1) (list_concat (rest L1) L2))
-				(cons (first L2) (list_concat (rest L2) L1))))))
+        (if (empty? L1) L2
+                (if (empty? L2) L1
+                        (if (< (first L1) (first L2))
+                                (cons (first L1) (list_concat (rest L1) L2))
+                                (cons (first L2) (list_concat (rest L2) L1))))))
 
-;;List of Natural-> List of Natural
-;;sorts the given elements in ascending order
-;;Example:
-;;list with odd number of elements
+;; List of Natural-> List of Natural
+;; Sorts the given elements in ascending order
+;; Example:
+;; list with odd number of elements
 (check-expect ( sort_fn '( 5 4 3 2 1 9 7 6 8))'(1 2 3 4 5 6 7 8 9))
-;;list with even number of elements
+;; list with even number of elements
 (check-expect ( sort_fn '( 2 3 1 5 4 7 8 6))'(1 2 3 4 5 6 7 8 ))
-;;strategy: Function Composition
+;; Strategy: Function Composition
 (define (sort_fn L1)
-	(if (empty? L1) L1
-		(if (empty? (rest L1)) L1
-			(list_concat
-				(sort_fn (first (divide L1)))
-				(sort_fn (first(rest (divide L1))))))))
+        (if (empty? L1) L1
+                (if (empty? (rest L1)) L1
+                        (list_concat
+                                (sort_fn (first (divide L1)))
+                                (sort_fn (first(rest (divide L1))))))))
