@@ -20,27 +20,7 @@ Here is an algorithm for sorting lists of numbers
 
 |#
 
-#;
-(define (list-length l1)
-  (list-ref l1 (/ (length l1) 2)))
-#;
-(define (even? num)
-  (cond
-    [(= (modulo num 2) 0) #true]
-    [else #false]))
 
-(define (smaller-than x l)
-  (filter (lambda (y) (< y x)) l))
-(define (larger-than x l)
-  (filter (lambda (y) (> y x)) l))
-
-
-
-(define (merge-sort l1)
-  (cond
-    [(or (empty? l1) (empty? (rest l1))) l1]
-    [else (quick-sort (append (smaller-than (second l1) l1) (list (second l1)))
-                      (larger-than (second l1) l1))]))
 #|
 Here is an algorithm for merging the two lists:
 
@@ -55,20 +35,7 @@ Here is an algorithm for merging the two lists:
     result of the recursive call.
 
 |#
-; quick-sort: List-of-Number List-of-Number -> List-of-Number
-; Merge two lists together and have them sorted
-; Strategy: Structural Decomposition
-(check-expect (quick-sort '() '()) '())
-(check-expect (quick-sort (list 1 3 5) '()) (list 1 3 5))
-(check-expect (quick-sort (list 1 3 5) (list 2 4 6)) (list 1 2 3 4 5 6))
-(check-expect (quick-sort (list 1 2 3 5 6 7) (list 4)) (list 1 2 3 4 5 6 7))
-(define (quick-sort l1 l2)
-  (cond
-    [(empty? l1) l2]
-    [(empty? l2) l1]
-    [else (if (< (first l1) (first l2))
-              (cons (first l1) (quick-sort (rest l1) l2))
-              (cons (first l2) (quick-sort l1 (rest l2))))]))
+
 #|
 
 Design functions that implement this sorting algorithm.
@@ -78,3 +45,61 @@ of each function using Big Oh notation.
 
 |#
 
+;;List -> List
+;;picks the odd numbers in the list
+(define (elements_odd L1)
+	(if (empty? L1) '()
+		(if (empty? (rest L1)) (list (first L1))
+			(cons (first L1) (elements_odd (rest(rest L1)))))))
+;;List-> List
+;;picks the even numbers in the list
+(define (elements_even L1)
+	(if (empty? L1) '()
+		(if (empty? (rest L1)) '()
+			(cons (first(rest L1)) (elements_even (rest (rest L1)))))))
+
+;; [List of Natural] -> [List 1 of Natural] [List 2 of Natural]
+;; divides a list into two:
+;;1.odd numbered list
+;;2.even numbered list
+;;example
+(check-expect( divide '(1 2 3 4 5 6 7 8 9)) '((1 3 5 7 9)(2 4 6 8)))
+;;strategy: function Composition
+(define (divide L1)
+	(cons (elements_odd L1) (cons (elements_even L1) `())))
+
+;;List List->List
+;; Concatanates two different lists.
+;; Examples:
+(check-expect ( list_concat '() '(1 2 3)) '(1 2 3))
+(check-expect ( list_concat '(1 2 3) '(6 7 8) ) '(1 2 3 6 7 8))
+(check-expect ( list_concat '(1 2 3) '(4 5)) '(1 2 3 4 5))
+;;stategy: structural decomposition
+#| template :
+(define list_concat L1 L2)
+        (... (empty L1) L2...
+        ... (empty? L2) L1...
+        ... (L1) L2...)
+|#
+
+(define (list_concat L1 L2)
+	(if (empty? L1) L2
+		(if (empty? L2) L1
+			(if (< (first L1) (first L2))
+				(cons (first L1) (list_concat (rest L1) L2))
+				(cons (first L2) (list_concat (rest L2) L1))))))
+
+;;List of Natural-> List of Natural
+;;sorts the given elements in ascending order
+;;Example:
+;;list with odd number of elements
+(check-expect ( sort_fn '( 5 4 3 2 1 9 7 6 8))'(1 2 3 4 5 6 7 8 9))
+;;list with even number of elements
+(check-expect ( sort_fn '( 2 3 1 5 4 7 8 6))'(1 2 3 4 5 6 7 8 ))
+;;strategy: Function Composition
+(define (sort_fn L1)
+	(if (empty? L1) L1
+		(if (empty? (rest L1)) L1
+			(list_concat
+				(sort_fn (first (divide L1)))
+				(sort_fn (first(rest (divide L1))))))))
