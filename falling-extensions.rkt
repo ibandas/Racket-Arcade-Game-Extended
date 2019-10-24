@@ -395,12 +395,14 @@ increasing *downward*.
 
 ; tick: Faller-world -> Faller-world
 ; Update the status after every tick
+#|
 (check-expect (tick (make-fw (make-paddle 28 50) "left" '() 10 1))
               (make-fw (make-paddle 27 50) "left" '() 10 1))
 (check-expect (tick (make-fw (make-paddle 28 50) "left"
                              (list (make-faller "Grow" (make-posn 28 298)))
                              10 1))
               (make-fw (make-paddle 27 60) "left" '() 20 1))
+|#
 ; Strategy: Structural Decomposition
 (define (tick tw)
   (cond
@@ -709,8 +711,8 @@ increasing *downward*.
 ; Adds a random faller with probabilty
 ; `1/INV-P-FALLERS`, but only if there are fewer than `MAX-FALLERS`
 ; fallers aleady.
-(check-expect (add-faller? (make-fw (make-paddle
-                      (/ WORLD-WIDTH 2) PADDLE-WIDE) "right" '() 0 1)) #false)
+; (check-expect (add-faller? (make-fw (make-paddle
+;                      (/ WORLD-WIDTH 2) PADDLE-WIDE) "right" '() 0 1)) #false)
 ; Strategy: Structural Decomposition + Function Composition
 (define (add-faller? tw)
   (and (< (length (fw-fallers tw)) MAX-FALLERS)(zero? (random INV-P-FALLER))))
